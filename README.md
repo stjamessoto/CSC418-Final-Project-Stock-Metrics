@@ -1,8 +1,8 @@
-# Stock Metrics App
+# Stock Metrics App (StalkExchange)
 
 A full-stack web application for searching stocks and viewing key investment metrics — Growth Rate, P/E Ratio, and PEG Ratio — with the ability to save favorites and filter by industry.
 
-**Stack:** FastAPI (Python) · React + Vite · Tailwind CSS · AWS DynamoDB · yfinance · Alpha Vantage
+**Stack:** FastAPI (Python) · React Router v7 + TypeScript · Tailwind CSS v4 · AWS DynamoDB · yfinance · Alpha Vantage
 
 ---
 
@@ -10,9 +10,10 @@ A full-stack web application for searching stocks and viewing key investment met
 
 ```
 stock-metrics/
+├── .env                          # Root env file — shared by backend
 ├── backend/
 │   ├── app/
-│   │   ├── main.py              # FastAPI app entry point, CORS config
+│   │   ├── main.py              # FastAPI entry point, CORS config
 │   │   ├── routes/
 │   │   │   ├── stocks.py        # GET /stock/{ticker}
 │   │   │   ├── favorites.py     # POST/GET/DELETE /favorites
@@ -34,46 +35,39 @@ stock-metrics/
 │   │   └── test_favorites_service.py
 │   ├── .env.example
 │   └── requirements.txt
-└── frontend/
-    ├── src/
-    │   ├── pages/
-    │   │   ├── Home.jsx          # Search page
-    │   │   ├── Favorites.jsx     # Saved stocks dashboard
-    │   │   ├── StockDetail.jsx   # Deep-dive single stock page
-    │   │   ├── Login.jsx
-    │   │   └── Register.jsx
-    │   ├── components/
-    │   │   ├── SearchBar.jsx
-    │   │   ├── MetricsCard.jsx   # Growth Rate, P/E, PEG + Lynch signal badge
-    │   │   ├── FavoriteButton.jsx
-    │   │   ├── ErrorModal.jsx
-    │   │   ├── IndustryFilter.jsx
-    │   │   ├── PeersPanel.jsx
-    │   │   ├── EarningsPanel.jsx
-    │   │   └── ProtectedRoute.jsx
-    │   ├── context/
-    │   │   └── AuthContext.jsx
-    │   ├── services/
-    │   │   └── api.js            # Axios instance, all HTTP calls
-    │   ├── styles/
-    │   │   └── index.css
-    │   ├── App.jsx
-    │   └── main.jsx
-    ├── index.html
-    ├── vite.config.js
-    ├── tailwind.config.js
-    ├── postcss.config.js
-    └── package.json
+└── stalkExchange/               # Frontend — React Router v7 + TypeScript
+    ├── app/
+    │   ├── routes/
+    │   │   ├── home.tsx          # Landing / search page
+    │   │   └── stocks.tsx        # Stock metrics display
+    │   ├── root.tsx
+    │   ├── routes.ts
+    │   └── app.css
+    ├── stalkVenv/               # Python venv (if using from here)
+    ├── react-router.config.ts
+    ├── package.json
+    └── Dockerfile
 ```
 
 ---
 
-## Prerequisites
+## Environment Variables
 
-- Python 3.11+
-- Node.js 18+
-- AWS account with DynamoDB access
-- [Alpha Vantage API key](https://www.alphavantage.co/support/#api-key) (free tier: 25 req/day)
+There is a single `.env` at the project root used by the backend. Copy and fill in:
+
+```bash
+cp backend/.env.example .env
+```
+
+| Variable | Description |
+|---|---|
+| `alphaVantage` | Alpha Vantage API key (free: 25 req/day) |
+| `AWS_ACCESS_KEY_ID` | AWS IAM access key |
+| `AWS_SECRET_ACCESS_KEY` | AWS IAM secret key |
+| `AWS_REGION` | DynamoDB region (e.g. `us-east-1`) |
+| `DYNAMODB_TABLE_NAME` | Table name (default: `StockMetrics`) |
+
+> The `alphaVantage` key is already set in `.env`. Add the AWS credentials to enable DynamoDB.
 
 ---
 
@@ -82,41 +76,23 @@ stock-metrics/
 ### 1. Create and activate a virtual environment
 
 ```bash
-cd backend
-python -m venv .venv
+# From project root or stalkExchange/
+python -m venv stalkExchange/stalkVenv
 
 # Windows
-.venv\Scripts\activate
+stalkExchange\stalkVenv\Scripts\activate
 
 # macOS / Linux
-source .venv/bin/activate
+source stalkExchange/stalkVenv/bin/activate
 ```
 
 ### 2. Install dependencies
 
 ```bash
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 ```
 
-### 3. Configure environment variables
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` and fill in your values:
-
-| Variable | Description |
-|---|---|
-| `AWS_ACCESS_KEY_ID` | AWS IAM access key |
-| `AWS_SECRET_ACCESS_KEY` | AWS IAM secret key |
-| `AWS_REGION` | DynamoDB region (e.g. `us-east-1`) |
-| `DYNAMODB_TABLE_NAME` | Table name (default: `StockMetrics`) |
-| `ALPHA_VANTAGE_API_KEY` | Alpha Vantage key for P/E + industry data |
-
-### 4. Provision the DynamoDB table
-
-Run once to create the table and GSI:
+### 3. Provision the DynamoDB table (run once)
 
 ```bash
 python -m backend.scripts.create_table
@@ -126,29 +102,31 @@ This creates:
 - **Table:** `StockMetrics`
   - PK: `USER#{userId}` (partition key)
   - SK: `TICKER#{ticker}` (sort key)
-- **GSI:** `IndustryIndex` — PK: `industry` (for industry-based filtering)
+- **GSI:** `IndustryIndex` — PK: `industry` (enables `/favorites?industry=` queries)
 
-### 5. Start the backend
+### 4. Start the backend
+
+Run from the **project root**:
 
 ```bash
 uvicorn backend.app.main:app --reload --port 8000
 ```
 
-API docs available at [http://localhost:8000/docs](http://localhost:8000/docs)
+Interactive API docs: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
-## Frontend Setup
+## Frontend Setup (stalkExchange)
 
 ```bash
-cd frontend
+cd stalkExchange
 npm install
 npm run dev
 ```
 
 App runs at [http://localhost:5173](http://localhost:5173)
 
-All `/api/*` requests are proxied to the backend at `http://localhost:8000` via `vite.config.js`.
+The frontend makes API calls to `http://localhost:8000` (backend must be running).
 
 ---
 
@@ -196,8 +174,7 @@ Returns `404` with `{"detail": "Ticker not found"}` for invalid tickers.
 ## Running Tests
 
 ```bash
-cd backend
-pytest tests/ -v
+pytest backend/tests/ -v
 ```
 
 ---
@@ -206,8 +183,8 @@ pytest tests/ -v
 
 - **Growth Rate** — `[(Net Income Y2 - Net Income Y1) / Net Income Y1] * 100` (2-year trailing, via yfinance)
 - **P/E Ratio** — Price-to-Earnings ratio (Alpha Vantage OVERVIEW or yfinance)
-- **PEG Ratio** — `Growth Rate / P/E` — Peter Lynch's primary valuation signal; PEG < 1 suggests undervalued
-- **Lynch Signal** — Badge shown when `Growth Rate > P/E` (Lynch's favored condition)
+- **PEG Ratio** — `Growth Rate / P/E` — Peter Lynch's primary valuation signal
+- **Lynch Signal** — displayed when `Growth Rate > P/E` (Lynch's favored undervaluation condition)
 
 ---
 
@@ -229,5 +206,5 @@ Open PRs against `dev`. Merge `dev` → `main` only when integrated and tested.
 |---|---|
 | Christian Johnson | T1 (Infra) + T6 Backend Auth |
 | Nicholas Adams | T2 (Stock API) + T3 (Favorites API) |
-| Seth Mack | T4 (Core Frontend) + T6 Frontend Auth |
+| Seth Mack | T4 (Core Frontend) + T6 Frontend Auth/Polish |
 | Santiago Soto | T5 (Favorites Dashboard + Stock Detail) |

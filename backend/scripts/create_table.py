@@ -3,10 +3,12 @@ Run once to provision the DynamoDB table and GSI.
 Usage: python -m backend.scripts.create_table
 """
 import os
+from pathlib import Path
 import boto3
 from dotenv import load_dotenv
 
-load_dotenv()
+# Root .env lives three levels above this file (project root)
+load_dotenv(dotenv_path=Path(__file__).resolve().parents[3] / ".env")
 
 TABLE_NAME = os.getenv("DYNAMODB_TABLE_NAME", "StockMetrics")
 REGION = os.getenv("AWS_REGION", "us-east-1")
