@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from app.routes import stocks
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -17,6 +18,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(stocks.router)
 
 @app.get("/health")
 def health_check():
