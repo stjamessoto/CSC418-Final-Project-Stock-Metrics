@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 # Root .env lives two levels above this file (project root)
 load_dotenv(dotenv_path=Path(__file__).resolve().parents[2] / ".env")
 
+from .routes.favorites import router as favorites_router  # noqa: E402
+
 app = FastAPI(title="Stock Metrics API", version="1.0.0")
 
 app.add_middleware(
@@ -16,6 +18,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(favorites_router)
 
 
 @app.get("/health")
