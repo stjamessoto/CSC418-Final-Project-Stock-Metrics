@@ -15,7 +15,7 @@ def calculate_growth_rate(previous_income, latest_income):
 
 
 def get_alpha_vantage_overview(ticker):
-    api_key = os.getenv("ALPHA_VANTAGE_API_KEY")
+    api_key = os.getenv("alphaVantage")
 
     if not api_key:
         return {}

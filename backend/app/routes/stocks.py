@@ -1,6 +1,6 @@
 from fastapi import APIRouter
-from app.models.stock import StockResponse
-from app.services.stock_service import get_stock_metrics
+from ..models.stock import StockResponse
+from ..services.stock_service import get_stock_metrics
 
 router = APIRouter()
 

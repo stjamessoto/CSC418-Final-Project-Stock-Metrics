@@ -1,12 +1,14 @@
 import os
 from pathlib import Path
-from app.routes import stocks
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 # Root .env lives two levels above this file (project root)
 load_dotenv(dotenv_path=Path(__file__).resolve().parents[2] / ".env")
+
+from .routes.favorites import router as favorites_router
+from .routes import stocks
 
 app = FastAPI(title="Stock Metrics API", version="1.0.0")
 
@@ -19,6 +21,8 @@ app.add_middleware(
 )
 
 app.include_router(stocks.router)
+app.include_router(favorites_router)
+
 
 @app.get("/health")
 def health_check():

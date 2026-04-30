@@ -76,14 +76,13 @@ cp backend/.env.example .env
 ### 1. Create and activate a virtual environment
 
 ```bash
-# From project root or stalkExchange/
-python -m venv stalkExchange/stalkVenv
+python -m venv backend/.venv
 
 # Windows
-stalkExchange\stalkVenv\Scripts\activate
+backend\.venv\Scripts\activate
 
 # macOS / Linux
-source stalkExchange/stalkVenv/bin/activate
+source backend/.venv/bin/activate
 ```
 
 ### 2. Install dependencies
