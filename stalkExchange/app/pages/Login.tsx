@@ -29,6 +29,20 @@ export default function Login() {
     }
   };
 
+  const handleDemoLogin = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await loginUser('demo@demo.com', 'demo1234');
+      login(res.data.access_token, res.data.userId);
+      navigate('/favorites');
+    } catch {
+      setError('Demo login unavailable. Make sure the backend is running.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="auth-page">
       <div className="auth-card">
@@ -71,6 +85,20 @@ export default function Login() {
             {loading ? <span className="spinner" /> : 'LOGIN'}
           </button>
         </form>
+
+        <div style={{ textAlign: 'center', margin: '12px 0 4px' }}>
+          <span style={{ fontSize: '0.75rem', color: '#888', letterSpacing: '0.05em' }}>OR</span>
+        </div>
+
+        <button
+          className="auth-btn"
+          type="button"
+          disabled={loading}
+          onClick={handleDemoLogin}
+          style={{ background: '#4a4a4a', marginTop: 0 }}
+        >
+          {loading ? <span className="spinner" /> : 'DEMO LOGIN'}
+        </button>
 
         <p className="auth-footer">
           No account?{' '}

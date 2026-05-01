@@ -14,6 +14,9 @@ _SECRET = os.getenv("JWT_SECRET", "changeme-please-set-jwt-secret-in-env")
 _ALGO = "HS256"
 _EXPIRE_DAYS = 7
 
+_DEMO_EMAIL = "demo@demo.com"
+_DEMO_PASSWORD = "demo1234"
+
 
 def _hash(password: str) -> str:
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
@@ -34,6 +37,8 @@ def _make_token(email: str) -> str:
 
 @router.post("/register", response_model=TokenResponse, status_code=201)
 def register(body: UserCreate):
+    if body.email == _DEMO_EMAIL:
+        raise HTTPException(status_code=400, detail="Email already registered")
     table = get_table()
     pk = f"AUTH#{body.email}"
     existing = table.get_item(Key={"PK": pk, "SK": "PROFILE"}).get("Item")
@@ -51,6 +56,8 @@ def register(body: UserCreate):
 
 @router.post("/login", response_model=TokenResponse)
 def login(body: UserLogin):
+    if body.email == _DEMO_EMAIL and body.password == _DEMO_PASSWORD:
+        return TokenResponse(access_token=_make_token(_DEMO_EMAIL), userId=_DEMO_EMAIL)
     table = get_table()
     item = table.get_item(Key={"PK": f"AUTH#{body.email}", "SK": "PROFILE"}).get("Item")
     if not item or not _verify(body.password, item["password_hash"]):
