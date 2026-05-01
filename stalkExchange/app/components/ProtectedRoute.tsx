@@ -6,10 +6,17 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!isAuthenticated) navigate('/login', { replace: true });
-  }, [isAuthenticated, navigate]);
+  // login() writes to localStorage synchronously before the React state update
+  // commits, so on the first render after navigate('/favorites') the context
+  // token may still be null. Fall back to localStorage as the ground truth.
+  const hasToken =
+    isAuthenticated ||
+    (typeof window !== 'undefined' && !!localStorage.getItem('token'));
 
-  if (!isAuthenticated) return null;
+  useEffect(() => {
+    if (!hasToken) navigate('/login', { replace: true });
+  }, [hasToken, navigate]);
+
+  if (!hasToken) return null;
   return <>{children}</>;
 }
