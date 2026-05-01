@@ -6,6 +6,9 @@ from boto3.dynamodb.conditions import Attr, Key
 from ..db.dynamo import get_table
 from ..models.favorite import FavoriteCreate, FavoriteItem, MetricsSnapshot
 
+_DEMO_USER = "demo@demo.com"
+_demo_store: dict[str, FavoriteItem] = {}
+
 
 def _to_decimal(val: float) -> Decimal:
     return Decimal(str(val))
@@ -33,6 +36,15 @@ def _item_to_model(item: dict) -> FavoriteItem:
 
 
 def save_favorite(body: FavoriteCreate) -> FavoriteItem:
+    item = FavoriteItem(
+        ticker=body.ticker,
+        industry=body.industry,
+        userId=body.userId,
+        metrics=body.metrics,
+    )
+    if body.userId == _DEMO_USER:
+        _demo_store[body.ticker] = item
+        return item
     table = get_table()
     metrics_serialized = {
         k: _to_decimal(v)
@@ -49,15 +61,15 @@ def save_favorite(body: FavoriteCreate) -> FavoriteItem:
             "metrics": metrics_serialized,
         }
     )
-    return FavoriteItem(
-        ticker=body.ticker,
-        industry=body.industry,
-        userId=body.userId,
-        metrics=body.metrics,
-    )
+    return item
 
 
 def get_favorites(userId: str, industry: Optional[str] = None) -> list[FavoriteItem]:
+    if userId == _DEMO_USER:
+        items = list(_demo_store.values())
+        if industry:
+            items = [i for i in items if i.industry == industry]
+        return items
     table = get_table()
     if industry:
         response = table.query(
@@ -73,6 +85,9 @@ def get_favorites(userId: str, industry: Optional[str] = None) -> list[FavoriteI
 
 
 def delete_favorite(userId: str, ticker: str) -> None:
+    if userId == _DEMO_USER:
+        _demo_store.pop(ticker, None)
+        return
     table = get_table()
     table.delete_item(
         Key={
