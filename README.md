@@ -25,10 +25,14 @@ cd CSC418-Final-Project-Stock-Metrics
 
 ## Environment Setup
 
-The backend reads a single `.env` file at the **project root**. Copy the example and fill in your credentials:
+The backend reads a single `.env` file at the **project root**. Create it and fill in your credentials:
 
 ```bash
+# macOS / Linux
 cp backend/.env.example .env
+
+# Windows (PowerShell)
+Copy-Item backend\.env.example .env
 ```
 
 Then open `.env` and set the values:
@@ -44,25 +48,43 @@ JWT_SECRET=any-long-random-string
 
 | Variable | Where to get it |
 |---|---|
-| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | AWS IAM console — create a user with DynamoDB access |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | AWS IAM console — create a user with DynamoDB full access |
 | `AWS_REGION` | The region your DynamoDB table is in (e.g. `us-east-1`) |
 | `DYNAMODB_TABLE_NAME` | Leave as `StockMetrics` unless you rename the table |
 | `alphaVantage` | [alphavantage.co](https://www.alphavantage.co/support/#api-key) — free tier gives 25 req/day |
 | `JWT_SECRET` | Any random string (e.g. output of `openssl rand -hex 32`) |
 
-> **DynamoDB table** — if you haven't created it yet, see the one-time provisioning step below under Manual Setup.
+---
+
+## One-Time: Provision the DynamoDB Table
+
+> Skip this step if the table already exists in your AWS account.
+
+The app stores favorites and user accounts in a single DynamoDB table. You must create it before running the app for the first time.
+
+```bash
+# Activate your Python virtual environment first (see Manual Setup below),
+# then run from the project root:
+python backend/scripts/create_table.py
+```
+
+This creates the `StalkMetrics` table with the required partition key, sort key, and `IndustryIndex` GSI. The script is idempotent — running it twice is safe.
 
 ---
 
 ## Running with Docker (recommended)
 
-Make sure Docker Desktop is running, then from the project root:
+> Make sure Docker Desktop is **running** before you proceed.
+
+From the project root:
 
 ```bash
 docker-compose up --build
 ```
 
-That's it. Docker builds both images and starts the stack. On subsequent runs you can drop `--build`:
+Docker builds both images and starts the full stack. The frontend waits for the backend health check before starting, so startup order is handled automatically.
+
+On subsequent runs you can omit `--build`:
 
 ```bash
 docker-compose up
@@ -74,45 +96,49 @@ docker-compose up
 | Backend API | http://localhost:8000 |
 | API docs (Swagger) | http://localhost:8000/docs |
 
-The frontend waits for the backend to pass its health check before starting, so startup order is handled automatically.
-
 To stop everything:
 
 ```bash
 docker-compose down
 ```
 
+> **DynamoDB with Docker:** Docker does not provision DynamoDB for you. You must still create the table in your AWS account (see above) and set all AWS credentials in `.env` before running `docker-compose up`.
+
 ---
 
 ## Running Manually (without Docker)
 
-You need **two terminals** running at the same time.
+> **You need two separate terminal windows open at the same time** — one for the backend and one for the frontend. Both must be running simultaneously for the app to work.
 
 ### Terminal 1 — Backend
 
 ```bash
-# Create and activate a virtual environment
+# 1. Create a virtual environment inside the backend folder
 python -m venv backend/.venv
 
-# Windows
-backend\.venv\Scripts\activate
-
-# macOS / Linux
+# 2. Activate it
+#    Windows (PowerShell):
+backend\.venv\Scripts\Activate.ps1
+#    Windows (Command Prompt):
+backend\.venv\Scripts\activate.bat
+#    macOS / Linux:
 source backend/.venv/bin/activate
 
-# Install dependencies
+# 3. Install Python dependencies
 pip install -r backend/requirements.txt
 
-# One-time: provision the DynamoDB table (skip if it already exists)
+# 4. One-time only: provision the DynamoDB table
 python backend/scripts/create_table.py
 
-# Start the server (run from project root)
+# 5. Start the API server (run from the project root, NOT from inside backend/)
 uvicorn backend.app.main:app --reload --port 8000
 ```
 
-Backend is live at http://localhost:8000
+Leave this terminal running. The backend is live at **http://localhost:8000**
 
 ### Terminal 2 — Frontend
+
+Open a **new** terminal window (keep Terminal 1 running):
 
 ```bash
 cd stalkExchange
@@ -120,7 +146,9 @@ npm install
 npm run dev
 ```
 
-Frontend is live at http://localhost:5173
+Leave this terminal running. The frontend is live at **http://localhost:5173**
+
+> Both terminals must stay open for the full app to work. Closing either one will break the other.
 
 ---
 
@@ -128,9 +156,10 @@ Frontend is live at http://localhost:5173
 
 1. **Home** (`/`) — search any US ticker symbol (e.g. `AAPL`, `TSLA`). Metrics and the Lynch signal appear immediately.
 2. **Register** (`/register`) — create an account with email and password.
-3. **Login** (`/login`) — sign in to access your watchlist.
+3. **Login** (`/login`) — sign in to access your watchlist. Use **DEMO LOGIN** to try without registering.
 4. **Watchlist** (`/favorites`) — view all saved tickers. Filter by industry, delete entries, or click a ticker to see its detail page.
 5. **Stock Detail** (`/stock/:ticker`) — analyst price target, earnings date, market cap, beta, dividend yield, and 52-week range.
+6. **Dark / Light mode** — toggle the slider in the top-right corner of the nav bar. Your preference is saved automatically.
 
 ---
 
@@ -234,11 +263,12 @@ CSC418-Final-Project-Stock-Metrics/
     ├── Dockerfile
     ├── package.json
     ├── app/
-    │   ├── root.tsx              # Global layout, AuthProvider, NavBar
+    │   ├── root.tsx              # Global layout, ThemeProvider, AuthProvider, NavBar
     │   ├── routes.ts             # Route definitions
-    │   ├── app.css               # Global styles (dark terminal theme)
+    │   ├── app.css               # Global styles (light default, dark mode via data-theme)
     │   ├── context/
-    │   │   └── AuthContext.tsx   # JWT token state
+    │   │   ├── AuthContext.tsx   # JWT token state
+    │   │   └── ThemeContext.tsx  # Light/dark theme toggle with localStorage persistence
     │   ├── pages/
     │   │   ├── Home.tsx          # Search page
     │   │   ├── Favorites.tsx     # Watchlist dashboard

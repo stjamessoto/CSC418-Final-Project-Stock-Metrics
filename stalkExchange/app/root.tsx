@@ -10,6 +10,7 @@ import {
 import type { Route } from "./+types/root";
 import "./app.css";
 import { AuthProvider } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import NavBar from "./components/NavBar";
 
 export const links: Route.LinksFunction = () => [
@@ -32,12 +33,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
-        <AuthProvider>
-          <NavBar />
-          {children}
-          <ScrollRestoration />
-          <Scripts />
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <NavBar />
+            {children}
+            <ScrollRestoration />
+            <Scripts />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
