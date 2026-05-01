@@ -35,9 +35,7 @@ export default function Register() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-header">
-          <span className="logo-mark" style={{ fontSize: 24 }}>⬡</span>
           <h1 className="auth-title">CREATE ACCOUNT</h1>
-          <p className="auth-sub">Start tracking your watchlist</p>
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit}>

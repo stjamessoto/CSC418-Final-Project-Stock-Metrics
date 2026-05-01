@@ -93,6 +93,72 @@ def get_stock_metrics(ticker):
     }
 
 
+def get_stock_news(ticker: str) -> dict:
+    ticker = ticker.upper()
+    stock = yf.Ticker(ticker)
+
+    try:
+        raw_news = stock.news or []
+    except Exception:
+        return {"ticker": ticker, "articles": []}
+
+    articles = []
+    for item in raw_news[:8]:
+        # yfinance 1.x nests fields under "content"; older versions use a flat structure
+        content = item.get("content") or item
+
+        title = content.get("title", "")
+
+        provider = content.get("provider", {})
+        publisher = (
+            provider.get("displayName", "") if isinstance(provider, dict) else ""
+        ) or content.get("publisher", "")
+
+        canonical = content.get("canonicalUrl", {})
+        link = (
+            canonical.get("url", "") if isinstance(canonical, dict) else ""
+        ) or content.get("link", "")
+
+        published_at = ""
+        pub_date = content.get("pubDate", "")
+        if pub_date:
+            try:
+                dt = datetime.fromisoformat(pub_date.replace("Z", "+00:00"))
+                published_at = dt.strftime("%b %d, %Y")
+            except Exception:
+                pass
+        else:
+            ts = content.get("providerPublishTime")
+            if ts:
+                try:
+                    published_at = datetime.fromtimestamp(float(ts)).strftime("%b %d, %Y")
+                except Exception:
+                    pass
+
+        thumbnail = None
+        try:
+            for src in (content, item):
+                thumb = src.get("thumbnail", {})
+                if isinstance(thumb, dict):
+                    resolutions = thumb.get("resolutions", [])
+                    if resolutions:
+                        thumbnail = resolutions[0].get("url")
+                        break
+        except Exception:
+            pass
+
+        if title or link:
+            articles.append({
+                "title": title,
+                "publisher": publisher,
+                "link": link,
+                "published_at": published_at,
+                "thumbnail": thumbnail,
+            })
+
+    return {"ticker": ticker, "articles": articles}
+
+
 def get_stock_detail(ticker: str) -> dict:
     ticker = ticker.upper()
     stock = yf.Ticker(ticker)
