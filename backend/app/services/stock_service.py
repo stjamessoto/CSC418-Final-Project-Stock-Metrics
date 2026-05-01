@@ -80,7 +80,7 @@ def get_stock_metrics(ticker):
 
     peg_ratio = None
     if pe_ratio and growth_rate:
-        peg_ratio = round(growth_rate / pe_ratio, 2)
+        peg_ratio = round(pe_ratio / growth_rate, 2)
 
     return {
         "ticker": ticker,

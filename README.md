@@ -224,7 +224,7 @@ pytest backend/tests/ -v
 |---|---|---|
 | **Growth Rate** | `(Net Income Y2 − Y1) / Y1 × 100` | yfinance annual financials |
 | **P/E Ratio** | Price ÷ Earnings per share | Alpha Vantage OVERVIEW (fallback: yfinance) |
-| **PEG Ratio** | `Growth Rate ÷ P/E` | Calculated |
+| **PEG Ratio** | `P/E ÷ Growth Rate` | Calculated |
 | **Lynch Signal** | `Growth Rate > P/E` | Peter Lynch undervaluation indicator |
 
 ---
