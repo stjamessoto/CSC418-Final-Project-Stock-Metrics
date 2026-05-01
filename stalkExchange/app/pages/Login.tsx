@@ -33,9 +33,7 @@ export default function Login() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-header">
-          <span className="logo-mark" style={{ fontSize: 24 }}>⬡</span>
           <h1 className="auth-title">SIGN IN</h1>
-          <p className="auth-sub">Access your watchlist</p>
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit}>

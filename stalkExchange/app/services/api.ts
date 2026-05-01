@@ -15,6 +15,7 @@ api.interceptors.request.use((config) => {
 
 export const fetchStock     = (ticker: string) => api.get(`/stock/${ticker}`);
 export const getStockDetail = (ticker: string) => api.get(`/stock/${ticker}/detail`);
+export const fetchStockNews = (ticker: string) => api.get(`/stock/${ticker}/news`);
 
 export const getFavorites = (userId = 'guest', industry: string | null = null) =>
   api.get('/favorites', { params: { userId, ...(industry ? { industry } : {}) } });
