@@ -1,81 +1,97 @@
-# Stock Metrics App (StalkExchange)
+# StalkExchange — Stock Metrics App
 
-A full-stack web application for searching stocks and viewing key investment metrics — Growth Rate, P/E Ratio, and PEG Ratio — with the ability to save favorites and filter by industry.
+A full-stack web application for searching US stocks and viewing key Peter Lynch–style investment metrics: Growth Rate, P/E Ratio, and PEG Ratio. Registered users can save a personal watchlist, filter by industry, and drill into detailed stock data.
 
-**Stack:** FastAPI (Python) · React Router v7 + TypeScript · Tailwind CSS v4 · AWS DynamoDB · yfinance · Alpha Vantage
+**Stack:** FastAPI · React Router v7 + TypeScript · AWS DynamoDB · yfinance · Alpha Vantage · Docker
 
 ---
 
-## Project Structure
+## Getting the Project
 
-```
-stock-metrics/
-├── .env                          # Root env file — shared by backend
-├── backend/
-│   ├── app/
-│   │   ├── main.py              # FastAPI entry point, CORS config
-│   │   ├── routes/
-│   │   │   ├── stocks.py        # GET /stock/{ticker}
-│   │   │   ├── favorites.py     # POST/GET/DELETE /favorites
-│   │   │   └── auth.py          # POST /auth/register, /auth/login
-│   │   ├── services/
-│   │   │   ├── stock_service.py # yfinance + Alpha Vantage logic
-│   │   │   └── favorites_service.py
-│   │   ├── models/
-│   │   │   ├── stock.py         # Pydantic response models
-│   │   │   └── favorite.py
-│   │   ├── db/
-│   │   │   └── dynamo.py        # boto3 DynamoDB client
-│   │   └── middleware/
-│   │       └── auth_middleware.py
-│   ├── scripts/
-│   │   └── create_table.py      # One-time DynamoDB table provisioning
-│   ├── tests/
-│   │   ├── test_stock_service.py
-│   │   └── test_favorites_service.py
-│   ├── .env.example
-│   └── requirements.txt
-└── stalkExchange/               # Frontend — React Router v7 + TypeScript
-    ├── app/
-    │   ├── routes/
-    │   │   ├── home.tsx          # Landing / search page
-    │   │   └── stocks.tsx        # Stock metrics display
-    │   ├── root.tsx
-    │   ├── routes.ts
-    │   └── app.css
-    ├── stalkVenv/               # Python venv (if using from here)
-    ├── react-router.config.ts
-    ├── package.json
-    └── Dockerfile
+### Prerequisites
+
+- [Git](https://git-scm.com/downloads)
+- **To run with Docker (recommended):** [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- **To run manually:** Python 3.12+ and Node.js 20+
+
+### Clone the repository
+
+```bash
+git clone https://github.com/stjamessoto/CSC418-Final-Project-Stock-Metrics.git
+cd CSC418-Final-Project-Stock-Metrics
 ```
 
 ---
 
-## Environment Variables
+## Environment Setup
 
-There is a single `.env` at the project root used by the backend. Copy and fill in:
+The backend reads a single `.env` file at the **project root**. Copy the example and fill in your credentials:
 
 ```bash
 cp backend/.env.example .env
 ```
 
-| Variable | Description |
-|---|---|
-| `alphaVantage` | Alpha Vantage API key (free: 25 req/day) |
-| `AWS_ACCESS_KEY_ID` | AWS IAM access key |
-| `AWS_SECRET_ACCESS_KEY` | AWS IAM secret key |
-| `AWS_REGION` | DynamoDB region (e.g. `us-east-1`) |
-| `DYNAMODB_TABLE_NAME` | Table name (default: `StockMetrics`) |
+Then open `.env` and set the values:
 
-> The `alphaVantage` key is already set in `.env`. Add the AWS credentials to enable DynamoDB.
+```
+AWS_ACCESS_KEY_ID=your_aws_access_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+AWS_REGION=us-east-1
+DYNAMODB_TABLE_NAME=StockMetrics
+alphaVantage=your_alpha_vantage_key
+JWT_SECRET=any-long-random-string
+```
+
+| Variable | Where to get it |
+|---|---|
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | AWS IAM console — create a user with DynamoDB access |
+| `AWS_REGION` | The region your DynamoDB table is in (e.g. `us-east-1`) |
+| `DYNAMODB_TABLE_NAME` | Leave as `StockMetrics` unless you rename the table |
+| `alphaVantage` | [alphavantage.co](https://www.alphavantage.co/support/#api-key) — free tier gives 25 req/day |
+| `JWT_SECRET` | Any random string (e.g. output of `openssl rand -hex 32`) |
+
+> **DynamoDB table** — if you haven't created it yet, see the one-time provisioning step below under Manual Setup.
 
 ---
 
-## Backend Setup
+## Running with Docker (recommended)
 
-### 1. Create and activate a virtual environment
+Make sure Docker Desktop is running, then from the project root:
 
 ```bash
+docker-compose up --build
+```
+
+That's it. Docker builds both images and starts the stack. On subsequent runs you can drop `--build`:
+
+```bash
+docker-compose up
+```
+
+| Service | URL |
+|---|---|
+| Frontend app | http://localhost:3000 |
+| Backend API | http://localhost:8000 |
+| API docs (Swagger) | http://localhost:8000/docs |
+
+The frontend waits for the backend to pass its health check before starting, so startup order is handled automatically.
+
+To stop everything:
+
+```bash
+docker-compose down
+```
+
+---
+
+## Running Manually (without Docker)
+
+You need **two terminals** running at the same time.
+
+### Terminal 1 — Backend
+
+```bash
+# Create and activate a virtual environment
 python -m venv backend/.venv
 
 # Windows
@@ -83,39 +99,20 @@ backend\.venv\Scripts\activate
 
 # macOS / Linux
 source backend/.venv/bin/activate
-```
 
-### 2. Install dependencies
-
-```bash
+# Install dependencies
 pip install -r backend/requirements.txt
-```
 
-### 3. Provision the DynamoDB table (run once)
+# One-time: provision the DynamoDB table (skip if it already exists)
+python backend/scripts/create_table.py
 
-```bash
-python -m backend.scripts.create_table
-```
-
-This creates:
-- **Table:** `StockMetrics`
-  - PK: `USER#{userId}` (partition key)
-  - SK: `TICKER#{ticker}` (sort key)
-- **GSI:** `IndustryIndex` — PK: `industry` (enables `/favorites?industry=` queries)
-
-### 4. Start the backend
-
-Run from the **project root**:
-
-```bash
+# Start the server (run from project root)
 uvicorn backend.app.main:app --reload --port 8000
 ```
 
-Interactive API docs: [http://localhost:8000/docs](http://localhost:8000/docs)
+Backend is live at http://localhost:8000
 
----
-
-## Frontend Setup (stalkExchange)
+### Terminal 2 — Frontend
 
 ```bash
 cd stalkExchange
@@ -123,56 +120,70 @@ npm install
 npm run dev
 ```
 
-App runs at [http://localhost:5173](http://localhost:5173)
+Frontend is live at http://localhost:5173
 
-The frontend makes API calls to `http://localhost:8000` (backend must be running).
+---
+
+## Using the App
+
+1. **Home** (`/`) — search any US ticker symbol (e.g. `AAPL`, `TSLA`). Metrics and the Lynch signal appear immediately.
+2. **Register** (`/register`) — create an account with email and password.
+3. **Login** (`/login`) — sign in to access your watchlist.
+4. **Watchlist** (`/favorites`) — view all saved tickers. Filter by industry, delete entries, or click a ticker to see its detail page.
+5. **Stock Detail** (`/stock/:ticker`) — analyst price target, earnings date, market cap, beta, dividend yield, and 52-week range.
 
 ---
 
 ## API Reference
 
-### Stock Metrics
+### Stock
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/stock/{ticker}` | Returns Growth Rate, P/E, PEG, 52-wk high/low, industry |
+| `GET` | `/stock/{ticker}` | Growth Rate, P/E, PEG, 52-wk range, industry |
+| `GET` | `/stock/{ticker}/detail` | Analyst target, earnings date, market cap, beta, volume, description |
 
-**Example response:**
+**Example — `/stock/AAPL`:**
 ```json
 {
   "ticker": "AAPL",
   "growth_rate": 12.5,
   "pe_ratio": 28.4,
   "peg_ratio": 2.27,
-  "week_52_high": 199.62,
-  "week_52_low": 124.17,
+  "fifty_two_week_high": 199.62,
+  "fifty_two_week_low": 124.17,
   "industry": "Technology"
 }
 ```
-
-Returns `404` with `{"detail": "Ticker not found"}` for invalid tickers.
 
 ### Favorites
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/favorites` | Save a stock to favorites |
-| `GET` | `/favorites` | List all favorited stocks |
-| `GET` | `/favorites?industry=Technology` | Filter favorites by industry (via GSI) |
-| `DELETE` | `/favorites/{ticker}` | Remove a favorited stock |
+| `POST` | `/favorites` | Save a stock to the watchlist |
+| `GET` | `/favorites?userId=you@example.com` | List all saved stocks |
+| `GET` | `/favorites?userId=you@example.com&industry=Technology` | Filter by industry |
+| `DELETE` | `/favorites/{ticker}?userId=you@example.com` | Remove a saved stock |
 
 ### Auth
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/auth/register` | Create an account |
-| `POST` | `/auth/login` | Login and receive JWT |
+| `POST` | `/auth/register` | Create an account — returns JWT |
+| `POST` | `/auth/login` | Sign in — returns JWT |
+
+### Other
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/health` | Health check — `{"status": "ok"}` |
 
 ---
 
 ## Running Tests
 
 ```bash
+# Activate the virtual environment first, then from the project root:
 pytest backend/tests/ -v
 ```
 
@@ -180,30 +191,81 @@ pytest backend/tests/ -v
 
 ## Key Metrics Explained
 
-- **Growth Rate** — `[(Net Income Y2 - Net Income Y1) / Net Income Y1] * 100` (2-year trailing, via yfinance)
-- **P/E Ratio** — Price-to-Earnings ratio (Alpha Vantage OVERVIEW or yfinance)
-- **PEG Ratio** — `Growth Rate / P/E` — Peter Lynch's primary valuation signal
-- **Lynch Signal** — displayed when `Growth Rate > P/E` (Lynch's favored undervaluation condition)
+| Metric | Formula | Source |
+|---|---|---|
+| **Growth Rate** | `(Net Income Y2 − Y1) / Y1 × 100` | yfinance annual financials |
+| **P/E Ratio** | Price ÷ Earnings per share | Alpha Vantage OVERVIEW (fallback: yfinance) |
+| **PEG Ratio** | `Growth Rate ÷ P/E` | Calculated |
+| **Lynch Signal** | `Growth Rate > P/E` | Peter Lynch undervaluation indicator |
 
 ---
 
-## Branching Strategy
+## Project Structure
 
 ```
-main        ← stable, demo-ready
-dev         ← integration branch
-feature/*   ← individual ticket work (e.g. feature/ticket-2-stock-api)
+CSC418-Final-Project-Stock-Metrics/
+├── .env                          # Secrets — never commit this
+├── docker-compose.yml            # Runs backend + frontend together
+├── backend/
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   ├── .env.example
+│   ├── app/
+│   │   ├── main.py               # FastAPI app, CORS config
+│   │   ├── routes/
+│   │   │   ├── stocks.py         # GET /stock/{ticker} and /detail
+│   │   │   ├── favorites.py      # POST/GET/DELETE /favorites
+│   │   │   └── auth.py           # POST /auth/register, /auth/login
+│   │   ├── services/
+│   │   │   ├── stock_service.py  # yfinance + Alpha Vantage logic
+│   │   │   └── favorites_service.py
+│   │   ├── models/
+│   │   │   ├── stock.py
+│   │   │   ├── favorite.py
+│   │   │   └── user.py
+│   │   └── db/
+│   │       └── dynamo.py         # boto3 DynamoDB client factory
+│   ├── scripts/
+│   │   └── create_table.py       # One-time DynamoDB table setup
+│   └── tests/
+│       ├── test_stock_service.py
+│       └── test_favorites_service.py
+└── stalkExchange/                # React Router v7 frontend
+    ├── Dockerfile
+    ├── package.json
+    ├── app/
+    │   ├── root.tsx              # Global layout, AuthProvider, NavBar
+    │   ├── routes.ts             # Route definitions
+    │   ├── app.css               # Global styles (dark terminal theme)
+    │   ├── context/
+    │   │   └── AuthContext.tsx   # JWT token state
+    │   ├── pages/
+    │   │   ├── Home.tsx          # Search page
+    │   │   ├── Favorites.tsx     # Watchlist dashboard
+    │   │   ├── StockDetail.tsx   # Deep-dive stock page
+    │   │   ├── Login.tsx
+    │   │   └── Register.tsx
+    │   ├── components/
+    │   │   ├── MetricsCard.tsx
+    │   │   ├── FavoriteButton.tsx
+    │   │   ├── IndustryFilter.tsx
+    │   │   ├── NavBar.tsx
+    │   │   ├── ProtectedRoute.tsx
+    │   │   └── SearchBar.tsx
+    │   └── services/
+    │       └── api.ts            # Axios client with auth interceptor
+    └── react-router.config.ts
 ```
-
-Open PRs against `dev`. Merge `dev` → `main` only when integrated and tested.
 
 ---
 
 ## Team
 
-| Person | Tickets |
+| Name | Tickets |
 |---|---|
-| Christian Johnson | T1 (Infra) + T6 Backend Auth |
-| Nicholas Adams | T2 (Stock API) + T3 (Favorites API) |
-| Seth Mack | T4 (Core Frontend) + T6 Frontend Auth/Polish |
-| Santiago Soto | T5 (Favorites Dashboard + Stock Detail) |
+| Christian Johnson | T1 — Infrastructure & project setup |
+| Nicholas Adams | T2 — Stock metrics API |
+| Nicholas Adams | T3 — Favorites API + DynamoDB |
+| Seth Mack | T4 — Core frontend (search, metrics card, UI theme) |
+| Santiago Soto | T5 — Favorites dashboard + Stock detail page |
+| All | T6 — Auth (JWT), Docker, polish |

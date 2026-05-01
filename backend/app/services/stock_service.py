@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 import requests
 import yfinance as yf
 from fastapi import HTTPException
@@ -87,6 +88,58 @@ def get_stock_metrics(ticker):
         "pe_ratio": pe_ratio,
         "peg_ratio": peg_ratio,
         "industry": industry,
+        "fifty_two_week_high": info.get("fiftyTwoWeekHigh"),
+        "fifty_two_week_low": info.get("fiftyTwoWeekLow"),
+    }
+
+
+def get_stock_detail(ticker: str) -> dict:
+    ticker = ticker.upper()
+    stock = yf.Ticker(ticker)
+
+    try:
+        info = stock.info
+    except Exception:
+        raise HTTPException(status_code=404, detail=f"Ticker {ticker} not found")
+
+    if not info or "symbol" not in info:
+        raise HTTPException(status_code=404, detail=f"Ticker {ticker} not found")
+
+    earnings_date = None
+    try:
+        cal = stock.calendar
+        if isinstance(cal, dict):
+            dates = cal.get("Earnings Date")
+            if dates:
+                d = dates[0] if isinstance(dates, list) else dates
+                earnings_date = d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d)
+    except Exception:
+        pass
+
+    if not earnings_date:
+        ts = info.get("nextEarningsDate") or info.get("earningsTimestamp")
+        if ts:
+            try:
+                earnings_date = datetime.fromtimestamp(float(ts)).strftime("%Y-%m-%d")
+            except Exception:
+                pass
+
+    description = info.get("longBusinessSummary") or None
+    if description and len(description) > 420:
+        description = description[:420] + "…"
+
+    return {
+        "ticker": ticker,
+        "company_name": info.get("longName"),
+        "analyst_target_price": info.get("targetMeanPrice"),
+        "earnings_date": earnings_date,
+        "sector": info.get("sector"),
+        "description": description,
+        "market_cap": info.get("marketCap"),
+        "volume": info.get("volume"),
+        "avg_volume": info.get("averageVolume"),
+        "dividend_yield": info.get("dividendYield"),
+        "beta": info.get("beta"),
         "fifty_two_week_high": info.get("fiftyTwoWeekHigh"),
         "fifty_two_week_low": info.get("fiftyTwoWeekLow"),
     }

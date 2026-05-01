@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { addFavorite } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const INDUSTRIES = [
   'Technology', 'Healthcare', 'Finance', 'Consumer Discretionary',
@@ -16,6 +17,7 @@ type StockData = {
 };
 
 export default function FavoriteButton({ stockData }: { stockData: StockData }) {
+  const { userId }              = useAuth();
   const [open, setOpen]         = useState(false);
   const [industry, setIndustry] = useState(stockData?.industry || '');
   const [saved, setSaved]       = useState(false);
@@ -33,7 +35,7 @@ export default function FavoriteButton({ stockData }: { stockData: StockData }) 
       await addFavorite({
         ticker:   stockData.ticker,
         industry,
-        userId:   'guest', // replaced once auth (T6) is wired in
+        userId:   userId || 'guest',
         metrics: {
           growth_rate: stockData.growth_rate,
           pe_ratio:    stockData.pe_ratio,
