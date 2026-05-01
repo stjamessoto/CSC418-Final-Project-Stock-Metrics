@@ -15,7 +15,10 @@ _mem_store: dict[str, dict[str, FavoriteItem]] = {}
 
 
 def _use_dynamo() -> bool:
-    return bool(os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY"))
+    return bool(
+        os.getenv("DYNAMO_ENDPOINT") or
+        (os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY"))
+    )
 
 
 def _to_decimal(val: float) -> Decimal:

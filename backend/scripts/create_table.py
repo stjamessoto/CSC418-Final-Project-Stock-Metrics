@@ -7,8 +7,13 @@ from pathlib import Path
 import boto3
 from dotenv import load_dotenv
 
-# Root .env lives three levels above this file (project root)
-load_dotenv(dotenv_path=Path(__file__).resolve().parents[3] / ".env")
+# Load .env from project root when running locally; in Docker env vars are injected directly
+try:
+    env_path = Path(__file__).resolve().parents[3] / ".env"
+    if env_path.exists():
+        load_dotenv(dotenv_path=env_path)
+except IndexError:
+    pass
 
 TABLE_NAME = os.getenv("DYNAMODB_TABLE_NAME", "StockMetrics")
 REGION = os.getenv("AWS_REGION", "us-east-1")
@@ -20,9 +25,10 @@ def create_table():
         region_name=REGION,
         aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
         aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+        endpoint_url=os.getenv("DYNAMO_ENDPOINT"),
     )
 
-    existing = [t["TableName"] for t in client.list_tables()["TableNames"]]
+    existing = [t for t in client.list_tables()["TableNames"]]
     if TABLE_NAME in existing:
         print(f"Table '{TABLE_NAME}' already exists — skipping.")
         return

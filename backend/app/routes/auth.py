@@ -39,7 +39,10 @@ def _make_token(email: str) -> str:
 
 
 def _use_dynamo() -> bool:
-    return bool(os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY"))
+    return bool(
+        os.getenv("DYNAMO_ENDPOINT") or
+        (os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY"))
+    )
 
 
 @router.post("/register", response_model=TokenResponse, status_code=201)
