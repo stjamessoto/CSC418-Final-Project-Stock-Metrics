@@ -1,3 +1,4 @@
+import os
 from decimal import Decimal
 from typing import Optional
 
@@ -8,6 +9,13 @@ from ..models.favorite import FavoriteCreate, FavoriteItem, MetricsSnapshot
 
 _DEMO_USER = "demo@demo.com"
 _demo_store: dict[str, FavoriteItem] = {}
+
+# In-memory store used when DynamoDB is not configured — keyed by userId
+_mem_store: dict[str, dict[str, FavoriteItem]] = {}
+
+
+def _use_dynamo() -> bool:
+    return bool(os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY"))
 
 
 def _to_decimal(val: float) -> Decimal:
@@ -45,6 +53,9 @@ def save_favorite(body: FavoriteCreate) -> FavoriteItem:
     if body.userId == _DEMO_USER:
         _demo_store[body.ticker] = item
         return item
+    if not _use_dynamo():
+        _mem_store.setdefault(body.userId, {})[body.ticker] = item
+        return item
     table = get_table()
     metrics_serialized = {
         k: _to_decimal(v)
@@ -70,6 +81,11 @@ def get_favorites(userId: str, industry: Optional[str] = None) -> list[FavoriteI
         if industry:
             items = [i for i in items if i.industry == industry]
         return items
+    if not _use_dynamo():
+        items = list(_mem_store.get(userId, {}).values())
+        if industry:
+            items = [i for i in items if i.industry == industry]
+        return items
     table = get_table()
     if industry:
         response = table.query(
@@ -87,6 +103,9 @@ def get_favorites(userId: str, industry: Optional[str] = None) -> list[FavoriteI
 def delete_favorite(userId: str, ticker: str) -> None:
     if userId == _DEMO_USER:
         _demo_store.pop(ticker, None)
+        return
+    if not _use_dynamo():
+        _mem_store.get(userId, {}).pop(ticker, None)
         return
     table = get_table()
     table.delete_item(
