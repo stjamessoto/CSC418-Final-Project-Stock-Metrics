@@ -1,15 +1,22 @@
-export default function MetricsCard({ data, onFavorite }) {
-  const { ticker, growth_rate, pe_ratio, peg_ratio, week_52_high, week_52_low, industry } = data;
+// Field names match backend StockResponse: fifty_two_week_high / fifty_two_week_low
+export default function MetricsCard({ data }: { data: Record<string, unknown> }) {
+  const { ticker, growth_rate, pe_ratio, peg_ratio, fifty_two_week_high, fifty_two_week_low, industry } = data as {
+    ticker: string;
+    growth_rate: number;
+    pe_ratio: number | null;
+    peg_ratio: number | null;
+    fifty_two_week_high: number | null;
+    fifty_two_week_low: number | null;
+    industry: string | null;
+  };
 
-  // Lynch signal: growth > P/E means the stock is potentially undervalued
-  const lynchSignal = growth_rate > pe_ratio;
+  const lynchSignal = pe_ratio !== null && growth_rate > pe_ratio;
 
-  const fmt = (val, suffix = '') =>
+  const fmt = (val: number | null | undefined, suffix = '') =>
     val !== null && val !== undefined ? `${Number(val).toFixed(2)}${suffix}` : 'N/A';
 
   return (
     <div className="metrics-card">
-      {/* Header */}
       <div className="metrics-header">
         <div className="ticker-block">
           <span className="ticker-label">TICKER</span>
@@ -24,7 +31,6 @@ export default function MetricsCard({ data, onFavorite }) {
         )}
       </div>
 
-      {/* Core metrics grid */}
       <div className="metrics-grid">
         <div className="metric-item">
           <span className="metric-label">Growth Rate</span>
@@ -51,21 +57,17 @@ export default function MetricsCard({ data, onFavorite }) {
         </div>
       </div>
 
-      {/* 52-week range */}
-      {(week_52_high || week_52_low) && (
+      {(fifty_two_week_high || fifty_two_week_low) && (
         <div className="week-range">
           <span className="metric-label">52-Week Range</span>
           <div className="range-bar-wrapper">
-            <span className="range-low">${fmt(week_52_low)}</span>
-            <div className="range-bar">
-              <div className="range-fill" />
-            </div>
-            <span className="range-high">${fmt(week_52_high)}</span>
+            <span className="range-low">${fmt(fifty_two_week_low)}</span>
+            <div className="range-bar"><div className="range-fill" /></div>
+            <span className="range-high">${fmt(fifty_two_week_high)}</span>
           </div>
         </div>
       )}
 
-      {/* Lynch explanation */}
       <div className={`lynch-summary ${lynchSignal ? 'lynch-good' : 'lynch-neutral'}`}>
         {lynchSignal
           ? '✓ Peter Lynch favors stocks where growth rate exceeds P/E — this one qualifies.'

@@ -1,9 +1,16 @@
 import { useEffect } from 'react';
 
-export default function ErrorModal({ ticker, message, onClose }) {
-  // Close on Escape key
+export default function ErrorModal({
+  ticker,
+  message,
+  onClose,
+}: {
+  ticker: string;
+  message: string | null;
+  onClose: () => void;
+}) {
   useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
@@ -19,7 +26,7 @@ export default function ErrorModal({ ticker, message, onClose }) {
           </p>
         )}
         <p className="modal-message">
-          {message || 'Check the symbol and try again. Make sure you\'re using the correct US market ticker.'}
+          {message || "Check the symbol and try again. Make sure you're using the correct US market ticker."}
         </p>
         <button className="modal-close-btn" onClick={onClose}>
           DISMISS

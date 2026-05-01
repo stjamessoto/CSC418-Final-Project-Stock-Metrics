@@ -1,9 +1,9 @@
 import { useState } from 'react';
 
-export default function SearchBar({ onSearch, loading }) {
+export default function SearchBar({ onSearch, loading }: { onSearch: (t: string) => void; loading: boolean }) {
   const [ticker, setTicker] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const val = ticker.trim().toUpperCase();
     if (val) onSearch(val);

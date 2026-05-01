@@ -7,34 +7,42 @@ const INDUSTRIES = [
   'Industrials', 'Materials', 'Communication Services', 'Other',
 ];
 
-export default function FavoriteButton({ stockData }) {
-  const [open, setOpen]       = useState(false);
-  const [industry, setIndustry] = useState(stockData?.industry || '');
-  const [saved, setSaved]     = useState(false);
-  const [saving, setSaving]   = useState(false);
-  const [error, setError]     = useState(null);
+type StockData = {
+  ticker: string;
+  industry: string | null;
+  growth_rate: number;
+  pe_ratio: number | null;
+  peg_ratio: number | null;
+};
 
-  const handleStar = () => {
-    if (saved) return;
-    setOpen((prev) => !prev);
-  };
+export default function FavoriteButton({ stockData }: { stockData: StockData }) {
+  const [open, setOpen]         = useState(false);
+  const [industry, setIndustry] = useState(stockData?.industry || '');
+  const [saved, setSaved]       = useState(false);
+  const [saving, setSaving]     = useState(false);
+  const [error, setError]       = useState<string | null>(null);
+
+  const handleStar = () => { if (!saved) setOpen((prev) => !prev); };
 
   const handleSave = async () => {
     if (!industry) return;
     setSaving(true);
     setError(null);
     try {
+      // Payload matches backend FavoriteCreate: metrics is a nested object
       await addFavorite({
-        ticker:     stockData.ticker,
+        ticker:   stockData.ticker,
         industry,
-        growth_rate: stockData.growth_rate,
-        pe_ratio:    stockData.pe_ratio,
-        peg_ratio:   stockData.peg_ratio,
-        userId:      'guest', // replaced once auth (T6) is wired in
+        userId:   'guest', // replaced once auth (T6) is wired in
+        metrics: {
+          growth_rate: stockData.growth_rate,
+          pe_ratio:    stockData.pe_ratio,
+          peg_ratio:   stockData.peg_ratio,
+        },
       });
       setSaved(true);
       setOpen(false);
-    } catch (err) {
+    } catch {
       setError('Could not save. Please try again.');
     } finally {
       setSaving(false);

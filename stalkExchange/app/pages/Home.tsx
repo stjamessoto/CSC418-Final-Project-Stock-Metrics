@@ -1,30 +1,41 @@
 import { useState } from 'react';
-import SearchBar     from '../components/SearchBar';
-import MetricsCard   from '../components/MetricsCard';
-import ErrorModal    from '../components/ErrorModal';
+import SearchBar      from '../components/SearchBar';
+import MetricsCard    from '../components/MetricsCard';
+import ErrorModal     from '../components/ErrorModal';
 import FavoriteButton from '../components/FavoriteButton';
 import { fetchStock } from '../services/api';
 
-export default function Home() {
-  const [loading, setLoading]   = useState(false);
-  const [stockData, setStockData] = useState(null);
-  const [error, setError]       = useState(null);
-  const [lastTicker, setLastTicker] = useState('');
+type StockData = {
+  ticker: string;
+  growth_rate: number;
+  pe_ratio: number | null;
+  peg_ratio: number | null;
+  industry: string | null;
+  fifty_two_week_high: number | null;
+  fifty_two_week_low: number | null;
+};
 
-  const handleSearch = async (ticker) => {
+type ApiError = { ticker: string; message: string | null };
+
+export default function Home() {
+  const [loading, setLoading]     = useState(false);
+  const [stockData, setStockData] = useState<StockData | null>(null);
+  const [error, setError]         = useState<ApiError | null>(null);
+
+  const handleSearch = async (ticker: string) => {
     setLoading(true);
     setStockData(null);
     setError(null);
-    setLastTicker(ticker);
 
     try {
       const res = await fetchStock(ticker);
       setStockData(res.data);
-    } catch (err) {
-      const status = err?.response?.status;
-      const detail = err?.response?.data?.detail;
+    } catch (err: unknown) {
+      const e = err as { response?: { status: number; data?: { detail?: string } } };
+      const status = e?.response?.status;
+      const detail = e?.response?.data?.detail ?? null;
       if (status === 404) {
-        setError({ ticker, message: detail || null });
+        setError({ ticker, message: detail });
       } else {
         setError({ ticker, message: 'An unexpected error occurred. Please try again.' });
       }
@@ -35,24 +46,19 @@ export default function Home() {
 
   return (
     <div className="home">
-      {/* Hero */}
       <header className="home-header">
         <div className="logo-block">
           <span className="logo-mark">⬡</span>
           <span className="logo-text">StalkExchange</span>
         </div>
-        <p className="tagline">
-          Peter Lynch–style metrics. One ticker at a time.
-        </p>
+        <p className="tagline">Peter Lynch–style metrics. One ticker at a time.</p>
       </header>
 
-      {/* Search */}
       <section className="search-section">
         <SearchBar onSearch={handleSearch} loading={loading} />
         <p className="search-hint">Enter a US market ticker symbol — e.g. AAPL, TSLA, MSFT</p>
       </section>
 
-      {/* Results */}
       {stockData && (
         <section className="results-section">
           <MetricsCard data={stockData} />
@@ -62,7 +68,6 @@ export default function Home() {
         </section>
       )}
 
-      {/* Loading skeleton */}
       {loading && (
         <section className="results-section">
           <div className="skeleton-card">
@@ -77,7 +82,6 @@ export default function Home() {
         </section>
       )}
 
-      {/* Error modal */}
       {error && (
         <ErrorModal
           ticker={error.ticker}
