@@ -6,9 +6,7 @@ services:
     container_name: stalkexchange_dynamo
     ports:
       - "8002:8000"
-    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath /data"
-    volumes:
-      - dynamo-data:/data
+    command: "-jar DynamoDBLocal.jar -sharedDb -inMemory"
     networks:
       - app-net
 
@@ -68,6 +66,3 @@ services:
 networks:
   app-net:
     driver: bridge
-
-volumes:
-  dynamo-data:
