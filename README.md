@@ -265,7 +265,7 @@ CSC418-Final-Project-Stock-Metrics/
 |---|---|
 | Christian Johnson | T1 — Infrastructure & project setup |
 | Nicholas Adams | T2 — Stock metrics API |
-| Nicholas Adams | T3 — Favorites API + DynamoDB |
+| Santiago Soto | T3 — Favorites API + DynamoDB |
 | Seth Mack | T4 — Core frontend (search, metrics card, UI theme) |
 | Santiago Soto | T5 — Favorites dashboard + Stock detail page |
 | All | T6 — Auth (JWT), Docker, polish |
