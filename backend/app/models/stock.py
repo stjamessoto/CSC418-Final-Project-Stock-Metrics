@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import List, Optional
 
 
 class StockResponse(BaseModel):
@@ -26,3 +26,16 @@ class StockDetailResponse(BaseModel):
     beta: Optional[float]
     fifty_two_week_high: Optional[float]
     fifty_two_week_low: Optional[float]
+
+
+class NewsArticle(BaseModel):
+    title: str
+    publisher: str
+    link: str
+    published_at: str
+    thumbnail: Optional[str]
+
+
+class StockNewsResponse(BaseModel):
+    ticker: str
+    articles: List[NewsArticle]

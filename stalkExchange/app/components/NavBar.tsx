@@ -7,8 +7,7 @@ export default function NavBar() {
   return (
     <nav className="nav">
       <Link to="/" className="nav-brand">
-        <span className="nav-mark">⬡</span>
-        <span className="nav-brand-text">StalkExchange</span>
+      <img src="/Group 17.svg"></img>
       </Link>
       <div className="nav-links">
         {isAuthenticated ? (

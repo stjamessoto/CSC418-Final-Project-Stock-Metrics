@@ -15,9 +15,10 @@ import NavBar from "./components/NavBar";
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+
   {
     rel: "stylesheet",
-    href: "https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@600;700;800&display=swap",
+    href: "https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Space+Grotesk:wght@300..700&family=Syne:wght@600;700;800&display=swap",
   },
 ];
 
